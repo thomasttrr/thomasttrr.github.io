@@ -26,25 +26,28 @@ const SETTINGS = {
   openToWork: "Open to AI operations roles",
 
   about: [
-    "I make sure the output is right. Since 2018 I've troubleshot production machines, consumer tech, and digital print files, trained new teammates, and helped automate workflows in fast-paced production.",
-    "Now I'm bringing that quality-first mindset to AI: evaluating model output, writing clear prompts, and helping teams run AI tools reliably. Currently earning Google and DeepLearning.AI certifications.",
+    "Since 2018 I’ve worked in fast-paced production environments troubleshooting machines, consumer tech, and digital print files. I’ve trained teammates and helped automate workflows, always with a focus on getting the output right the first time.",
+
+    "Now I’m applying that same quality-first mindset to AI — evaluating model outputs, writing clear prompts, and helping teams use AI tools reliably. Currently completing Google AI Essentials and DeepLearning.AI certifications.", 
   ],
 
   skills: [
     "AI Applications",
-    "Prompting",
     "Workflow Automation",
+    "Inventory Systems",
+    "Xeno Software",
     "Quality Control",
     "System Troubleshooting",
     "Technical Training",
     "Process Optimization",
     "Client Communication",
-    "HTML & CSS",
     "Adobe Photoshop",
     "Adobe Illustrator",
+    "HTML & CSS",
+    "JavaScript",
+    "Python",
     "Windows",
-    "Inventory Systems",
-    "Xeno Software",
+    "Prompting",
   ],
 
   // Newest job first.
