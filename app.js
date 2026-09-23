@@ -35,6 +35,22 @@ function strings(value) {
   return Array.isArray(value) ? value.map(text).filter(Boolean) : [];
 }
 
+function skillGroups(settings) {
+  const skills = Array.isArray(settings.skills) ? settings.skills : [];
+  const hasGroups = skills.some((item) => item && typeof item === "object");
+  if (!hasGroups) {
+    const items = strings(skills);
+    return items.length ? [{ group: "", items }] : [];
+  }
+  return list(skills)
+    .map((item) => {
+      const items = strings(item.items);
+      if (!items.length) return null;
+      return { group: text(item.group), items };
+    })
+    .filter(Boolean);
+}
+
 function motionOK() {
   return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -159,7 +175,7 @@ function projectItems(settings) {
 function visibleTabs(settings) {
   const contact = settings.contact && typeof settings.contact === "object" ? settings.contact : {};
   const ready = {
-    about: strings(settings.about).length > 0 || strings(settings.skills).length > 0 || educationItems(settings).length > 0,
+    about: strings(settings.about).length > 0 || skillGroups(settings).length > 0 || educationItems(settings).length > 0,
     experience: experienceItems(settings).length > 0,
     certifications: certItems(settings).length > 0,
     projects: projectItems(settings).length > 0,
@@ -195,6 +211,35 @@ function panelShell(tab) {
   });
 }
 
+function renderSkills(groups) {
+  if (!groups.length) return null;
+  if (groups.length === 1 && !groups[0].group) {
+    return el("ul", {
+      class: "chips",
+      attrs: { "aria-label": "Skills" },
+      children: groups[0].items.map((skill) => el("li", { text: skill })),
+    });
+  }
+
+  return el("div", {
+    class: "skill-groups",
+    children: groups.map((group, index) => {
+      const headingId = `skill-group-${index}`;
+      const chips = el("ul", {
+        class: "chips",
+        attrs: group.group ? { "aria-labelledby": headingId } : { "aria-label": "Skills" },
+        children: group.items.map((skill) => el("li", { text: skill })),
+      });
+      const block = el("div", { class: "skill-group" });
+      if (group.group) {
+        block.append(el("h3", { class: "skill-label", text: group.group, attrs: { id: headingId } }));
+      }
+      block.append(chips);
+      return block;
+    }),
+  });
+}
+
 function renderAbout(settings, tab) {
   const panel = panelShell(tab);
   panel.append(kicker(tab));
@@ -202,16 +247,8 @@ function renderAbout(settings, tab) {
   strings(settings.about).forEach((paragraph) => prose.append(el("p", { text: paragraph })));
   if (prose.childNodes.length) panel.append(prose);
 
-  const skills = strings(settings.skills);
-  if (skills.length) {
-    panel.append(
-      el("ul", {
-        class: "chips",
-        attrs: { "aria-label": "Skills" },
-        children: skills.map((skill) => el("li", { text: skill })),
-      })
-    );
-  }
+  const skills = renderSkills(skillGroups(settings));
+  if (skills) panel.append(skills);
 
   const school = educationItems(settings);
   if (school.length) {
