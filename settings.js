@@ -5,6 +5,7 @@
 // How to edit:
 // - Change the words inside the quotes.
 // - To hide something, leave it empty ("" or []) or delete that line.
+// - A skills group disappears when its items list is empty ([]).
 // - A tab disappears when its section has nothing to show.
 // - Items show in the order you list them.
 // - Keep a comma between items. A comma after the last item is fine.
@@ -32,22 +33,18 @@ const SETTINGS = {
   ],
 
   skills: [
-    "AI Applications",
-    "Workflow Automation",
-    "Inventory Systems",
-    "Xeno Software",
-    "Quality Control",
-    "System Troubleshooting",
-    "Technical Training",
-    "Process Optimization",
-    "Client Communication",
-    "Adobe Photoshop",
-    "Adobe Illustrator",
-    "HTML & CSS",
-    "JavaScript",
-    "Python",
-    "Windows",
-    "Prompting",
+    { group: "AI", items: ["Prompting", "AI Applications"] },
+    {
+      group: "Operations",
+      items: [
+        "Quality Control",
+        "Workflow Automation",
+        "Troubleshooting",
+        "Technical Training",
+        "Client Communication",
+      ],
+    },
+    { group: "Tools", items: ["Photoshop", "Illustrator", "HTML & CSS", "JavaScript", "Python"] },
   ],
 
   // Newest job first.
