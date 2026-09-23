@@ -446,8 +446,7 @@ function boot(settings) {
     class: "card-header",
     children: [
       el("div", { class: "cover-clip", children: [el("div", { class: "card-cover", attrs: { "aria-hidden": "true" }, children: [photoLayer] })] }),
-      avatar,
-      identity,
+      el("div", { class: "header-main", children: [avatar, identity] }),
     ],
   });
 
