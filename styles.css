@@ -112,12 +112,13 @@ a {
 
 .card {
   --accent: #fff;
+  --radius: 28px;
   display: flex;
   flex-direction: column;
   width: 100%;
   max-height: calc(100vh - (var(--page-pad) * 2));
   max-height: calc(100dvh - (var(--page-pad) * 2));
-  border-radius: 28px;
+  border-radius: var(--radius);
   background: rgb(255 255 255 / 0.05);
   border: 1px solid rgb(255 255 255 / 0.1);
   box-shadow:
@@ -126,6 +127,7 @@ a {
   -webkit-backdrop-filter: blur(24px) saturate(150%);
   backdrop-filter: blur(24px) saturate(150%);
   overflow: hidden;
+  isolation: isolate;
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -136,11 +138,18 @@ a {
 
 .card-header {
   position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.header-main {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
   padding: 28px 24px 18px;
 }
 
@@ -149,6 +158,9 @@ a {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  border-radius: inherit;
+  /* Blur/transform on the photo creates a layer that can ignore overflow + radius. */
+  clip-path: inset(0 round var(--radius) var(--radius) 0 0);
 }
 
 .card-cover {
@@ -265,7 +277,7 @@ a {
   box-shadow: 0 0 0 3px rgb(61 214 140 / 0.18);
 }
 
-.card.is-compact .card-header {
+.card.is-compact .header-main {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: start;
@@ -273,11 +285,6 @@ a {
   column-gap: 12px;
   row-gap: 0;
   padding: 14px 16px;
-}
-
-.card.is-compact .cover-clip {
-  grid-column: 1 / -1;
-  grid-row: 1;
 }
 
 .card.is-compact .avatar-wrap {
@@ -741,16 +748,16 @@ a.contact-row {
   }
 
   .card {
-    border-radius: 22px;
+    --radius: 22px;
   }
 
-  .card-header,
+  .header-main,
   .panel {
     padding-left: 16px;
     padding-right: 16px;
   }
 
-  .card.is-compact .card-header {
+  .card.is-compact .header-main {
     padding-left: 14px;
     padding-right: 14px;
   }
