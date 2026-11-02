@@ -24,16 +24,25 @@ const SETTINGS = {
   photo: "assets/IMG_1944-EDIT.jpg",
 
   // Leave empty ("") to hide the green status pill.
-  openToWork: "Open to AI operations roles",
+  openToWork: "Open to AI Trainer & Data Quality roles",
 
   about: [
-    "Since 2018 I’ve worked in fast-paced production environments troubleshooting machines, consumer tech, and digital print files. I’ve trained teammates and helped automate workflows, always with a focus on getting the output right the first time.",
+    "Since 2018 I’ve checked work that has to be right before it ships — production machines, consumer tech, and digital print files. I catch errors before they reach the press, follow job specs exactly, train teammates, and help automate workflows.",
 
-    "Now I’m applying that same quality-first mindset to AI — evaluating model outputs, writing clear prompts, and helping teams use AI tools reliably. Currently completing Google AI Essentials and DeepLearning.AI certifications.", 
+    "Now I want to do that same checking work for AI: rating AI answers, spotting wrong facts, and following scoring guides the same way every time. I build AI tools in my own time, including one that compares AI models on quality and cost. Currently completing Google AI Essentials and DeepLearning.AI certifications.",
   ],
 
   skills: [
-    { group: "AI", items: ["Prompting", "AI Applications"] },
+    {
+      group: "AI",
+      items: [
+        "Prompting",
+        "Model Output Evaluation",
+        "Fact-Checking AI Output",
+        "Data Quality Review",
+        "AI Applications",
+      ],
+    },
     { group: "Development", items: ["Rust", "TypeScript", "React", "Next.js"] },
     {
       group: "Operations",
@@ -54,7 +63,7 @@ const SETTINGS = {
       dates: "2020 – Now",
       role: "Production Print Specialist",
       company: "Online Labels",
-      summary: "Resolve digital print-file issues in Photoshop and Illustrator, and help automate workflows that raise production efficiency.",
+      summary: "Resolve digital print-file issues in Photoshop and Illustrator before they reach the press, and help automate workflows that raise production efficiency and catch errors earlier.",
     },
     {
       dates: "2019 – 2020",

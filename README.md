@@ -3,9 +3,9 @@
 **AI Operations · Data Quality**  
 Sanford, FL (Orlando area)
 
-> Open to entry-level AI operations roles.
+> Open to AI Trainer and Data Quality roles.
 
-Since 2018 I have troubleshot production equipment, consumer electronics, and digital print files, trained new teammates, and helped automate workflows. I am bringing that same standard to AI: reviewing model output, writing clear prompts, and helping teams run AI tools reliably.
+Since 2018 I have checked work that has to be right before it ships — production equipment, consumer electronics, and digital print files. I catch errors before they reach the press, follow job specs exactly, train new teammates, and help automate workflows. Now I want to do that same checking work for AI: rating AI answers, spotting wrong facts, and following scoring guides the same way every time.
 
 ### Experience
 
