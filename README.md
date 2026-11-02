@@ -18,6 +18,14 @@ Since 2018 I have troubleshot production equipment, consumer electronics, and di
 **Press Machine Operator**  
 2018 – 2019
 
+### Projects
+
+**PrintOpti** — Rust tool for print production: reads production schedules, works out the best cardstock use, and creates pull sheets. The web version runs the same code in the browser, with nothing uploaded.
+
+**HQ Board** — One-screen dashboard showing the true state of all my projects and what needs my attention first. Next.js, TypeScript, and React; passcode-protected and written in plain language.
+
+**AI Deal Tray** — Windows tray tool that compares AI models by real value, not just headline price: live prices, quality gates first, and cost per typical job. Python and PySide6.
+
 ### In progress
 
 Google AI Essentials · AI for Everyone · Generative AI for Everyone

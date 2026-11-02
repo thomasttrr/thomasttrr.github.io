@@ -34,6 +34,7 @@ const SETTINGS = {
 
   skills: [
     { group: "AI", items: ["Prompting", "AI Applications"] },
+    { group: "Development", items: ["Rust", "TypeScript", "React", "Next.js"] },
     {
       group: "Operations",
       items: [
@@ -108,12 +109,34 @@ const SETTINGS = {
   //   link: "",
   //   tags: ["Prompting", "Quality"],
   // },
-  projects: [],
+  projects: [
+    {
+      name: "PrintOpti",
+      summary:
+        "Rust tool I build for print production. It reads production schedules, works out the best cardstock use, and creates pull sheets. The web version runs the same code in the browser — paste a schedule, get a pull sheet and a reorder label PDF, with nothing uploaded.",
+      link: "https://github.com/thomasttrr/printopti-cardstock-main",
+      tags: ["Rust", "WebAssembly", "JavaScript", "Workflow Automation"],
+    },
+    {
+      name: "HQ Board",
+      summary:
+        "One-screen dashboard that shows the true state of all my projects and what needs my attention first. Passcode-protected and written in plain language, so a five-second check in the morning is enough.",
+      link: "",
+      tags: ["Next.js", "TypeScript", "React"],
+    },
+    {
+      name: "AI Deal Tray",
+      summary:
+        "Windows tray tool that compares AI models by real value, not just headline price. It checks live prices, applies quality gates first, and shows the cost per typical job for each kind of work.",
+      link: "",
+      tags: ["Python", "PySide6", "AI Applications"],
+    },
+  ],
 
   contact: {
     email: "thomasttrr@gmail.com",
     linkedin: "",
-    github: "",
+    github: "https://github.com/thomasttrr",
     // After you export a resume with the phone number removed, save it as
     // assets/Thomas-Tucker-Resume.pdf and set this to that path.
     resume: "",
