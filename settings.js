@@ -125,7 +125,7 @@ const SETTINGS = {
       name: "PrintOpti",
       summary:
         "Rust tool I built for print production. Paste in a production schedule and it plans the best cardstock use and makes the pull sheet. The web version runs fully in the browser — nothing is uploaded.",
-      link: "https://github.com/thomasttrr/printopti-cardstock-main",
+      link: "",
       tags: ["Rust", "WebAssembly", "JavaScript", "Workflow Automation"],
     },
     {
@@ -141,6 +141,26 @@ const SETTINGS = {
         "Windows tool that compares AI models by real value, not headline price. It checks live prices, applies quality gates first, and shows the cost per job.",
       link: "",
       tags: ["Python", "PySide6", "AI Applications"],
+    },
+    {
+      name: "WuWa Today",
+      summary:
+        "Guide and tier-list site for a popular game, built and run by me. All data is checked against two sources before it goes up, and pages update on a set schedule.",
+      link: "",
+      tags: ["Next.js", "TypeScript", "Data Verification"],
+    },
+    {
+      name: "StarDiveMeta",
+      summary:
+        "Tier-list site for a mobile game. Every ranking is backed by evidence from several sources, kept one tap away so readers can check it themselves.",
+      link: "",
+      tags: ["Data Quality", "Research", "Web App"],
+    },
+    {
+      name: "LogMyMoto",
+      summary: "An app for logging motorcycle rides — trips and stops kept in one place.",
+      link: "",
+      tags: ["Ride Logging"],
     },
   ],
 
