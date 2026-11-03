@@ -770,28 +770,113 @@ a.contact-row {
   box-shadow: 0 30px 80px rgb(0 0 0 / 0.5);
 }
 
-@media (max-width: 380px) {
+/* Phones (incl. iPhone Duo folded, ~382-466px): the card becomes a normal
+   flowing page. No locked height, no inner scroll trap, the compact header
+   is used on every tab, and the tab bar floats fixed at the bottom. */
+@media (max-width: 480px) {
   :root {
-    --page-pad: 12px;
+    --page-pad: 8px;
+  }
+
+  body {
+    display: block;
+    min-height: 0;
+    padding: var(--page-pad) var(--page-pad) 0;
+  }
+
+  main {
+    width: 100%;
   }
 
   .card {
     --radius: 22px;
+    max-height: none;
+    /* Solid fill + no backdrop blur: blur on the card would trap the
+       fixed tab bar inside the card instead of the screen. */
+    overflow: visible;
+    background: rgb(18 18 20 / 0.97);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    /* Room so the fixed tab bar never covers the last content. */
+    margin-bottom: 84px;
   }
 
-  .header-main,
-  .panel {
-    padding-left: 16px;
-    padding-right: 16px;
+  .card-body {
+    overflow: visible;
   }
 
-  .card.is-compact .header-main {
-    padding-left: 14px;
-    padding-right: 14px;
+  /* Compact header on every tab, including About. Mirrors .is-compact. */
+  .header-main {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: start;
+    justify-items: start;
+    column-gap: 12px;
+    row-gap: 0;
+    padding: 14px 16px;
+  }
+
+  .avatar-wrap {
+    grid-column: 1;
+    grid-row: 1;
+    width: 48px;
+    height: 48px;
+  }
+
+  .monogram {
+    font-size: 15px;
+  }
+
+  .identity {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: flex-start;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
   }
 
   .name {
-    font-size: 24px;
+    font-size: 18px;
+  }
+
+  .role-title {
+    letter-spacing: 0.1em;
+  }
+
+  .status {
+    margin-top: 4px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  /* Let the status line wrap instead of cutting off with "..."
+     (the .is-compact selector is needed to beat the compact nowrap rule) */
+  .status-text,
+  .card.is-compact .status-text {
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+  }
+
+  .panel {
+    padding: 4px 16px 24px;
+  }
+
+  /* Tab bar: fixed to the bottom of the screen, always reachable. */
+  .tablist {
+    position: fixed;
+    right: var(--page-pad);
+    bottom: calc(var(--page-pad) + env(safe-area-inset-bottom));
+    left: var(--page-pad);
+    z-index: 50;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: rgb(14 14 16 / 0.92);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+    box-shadow: 0 18px 40px rgb(0 0 0 / 0.5);
   }
 
   .tab {
