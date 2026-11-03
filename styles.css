@@ -378,6 +378,12 @@ a {
   background: rgb(255 255 255 / 0.28);
 }
 
+/* Breathing room between the header and the page number/name line that
+   opens every tab. */
+.panel > .kicker:first-child {
+  margin-top: 10px;
+}
+
 .prose p {
   margin: 0 0 12px;
   color: var(--text-dim);
