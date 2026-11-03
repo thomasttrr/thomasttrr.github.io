@@ -29,9 +29,9 @@ const SETTINGS = {
   openToWork: "Open to AI Trainer & Data Quality roles",
 
   about: [
-    "Since 2018 I’ve checked work that has to be right before it ships — production machines, consumer tech, and digital print files. I catch errors before they reach the press, follow job specs exactly, train teammates, and help automate workflows.",
+    "Since 2018, my job has been checking work before it ships: print files, machines, and consumer tech. I catch errors early, follow specs exactly, train teammates, and help automate the work.",
 
-    "Now I want to do that same checking work for AI: rating AI answers, spotting wrong facts, and following scoring guides the same way every time. I build AI tools in my own time, including one that compares AI models on quality and cost. Currently completing Google AI Essentials and DeepLearning.AI certifications.",
+    "Now I want to do the same work for AI: rate answers, spot wrong facts, and follow scoring guides the same way every time. I build AI tools in my own time, and I’m currently taking Google and DeepLearning.AI courses.",
   ],
 
   skills: [
@@ -65,7 +65,7 @@ const SETTINGS = {
       dates: "2020 – Now",
       role: "Production Print Specialist",
       company: "Online Labels",
-      summary: "Resolve digital print-file issues in Photoshop and Illustrator before they reach the press, and help automate workflows that raise production efficiency and catch errors earlier.",
+      summary: "Fix digital print files in Photoshop and Illustrator before they reach the press. Help automate workflows so errors get caught earlier.",
     },
     {
       dates: "2019 – 2020",
@@ -124,21 +124,21 @@ const SETTINGS = {
     {
       name: "PrintOpti",
       summary:
-        "Rust tool I build for print production. It reads production schedules, works out the best cardstock use, and creates pull sheets. The web version runs the same code in the browser — paste a schedule, get a pull sheet and a reorder label PDF, with nothing uploaded.",
+        "Rust tool I built for print production. Paste in a production schedule and it plans the best cardstock use and makes the pull sheet. The web version runs fully in the browser — nothing is uploaded.",
       link: "https://github.com/thomasttrr/printopti-cardstock-main",
       tags: ["Rust", "WebAssembly", "JavaScript", "Workflow Automation"],
     },
     {
       name: "HQ Board",
       summary:
-        "One-screen dashboard that shows the true state of all my projects and what needs my attention first. Passcode-protected and written in plain language, so a five-second check in the morning is enough.",
+        "One screen that shows the true state of all my projects, and what needs me first. Passcode-protected, in plain words.",
       link: "",
       tags: ["Next.js", "TypeScript", "React"],
     },
     {
       name: "AI Deal Tray",
       summary:
-        "Windows tray tool that compares AI models by real value, not just headline price. It checks live prices, applies quality gates first, and shows the cost per typical job for each kind of work.",
+        "Windows tool that compares AI models by real value, not headline price. It checks live prices, applies quality gates first, and shows the cost per job.",
       link: "",
       tags: ["Python", "PySide6", "AI Applications"],
     },
