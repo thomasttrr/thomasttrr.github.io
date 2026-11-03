@@ -21,7 +21,9 @@ const SETTINGS = {
   location: "Sanford, FL (Orlando area)",
 
   // Your portrait. A missing file falls back to the TT monogram.
-  photo: "assets/IMG_1944-EDIT.jpg",
+  // portrait.jpg is a small square crop of IMG_1944-EDIT.jpg (the original
+  // is kept in assets/). A square photo about 320px wide works best.
+  photo: "assets/portrait.jpg",
 
   // Leave empty ("") to hide the green status pill.
   openToWork: "Open to AI Trainer & Data Quality roles",

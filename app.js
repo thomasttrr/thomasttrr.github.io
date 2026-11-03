@@ -2,6 +2,10 @@
 
 const EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
 const DURATION = 280;
+// The contact form unfolds over 450ms and the card grows on the same clock.
+const FORM_DURATION = 450;
+const FORM_ENDPOINT = "https://api.web3forms.com/submit";
+const SEND_TIMEOUT = 15000;
 const SETTINGS_ERROR =
   "Couldn't read settings.js. This is usually a missing comma or quote. Press F12, then open Console, to see the line number.";
 
@@ -25,56 +29,6 @@ const HASH_TO_ID = {
 
 function text(value) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function cyclePlaceholder(input, phrases) {
-  if (!input || !phrases.length) return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    input.setAttribute("placeholder", phrases[0]);
-    return;
-  }
-  let phrase = 0;
-  let chars = 0;
-  let deleting = false;
-  let timer = 0;
-  const tick = () => {
-    const current = phrases[phrase];
-    if (!deleting) {
-      chars += 1;
-      input.setAttribute("placeholder", current.slice(0, chars));
-      if (chars === current.length) {
-        deleting = true;
-        timer = window.setTimeout(tick, 1235);
-        return;
-      }
-      timer = window.setTimeout(tick, 36);
-    } else {
-      chars -= 1;
-      input.setAttribute("placeholder", current.slice(0, chars));
-      if (chars === 0) {
-        deleting = false;
-        phrase = (phrase + 1) % phrases.length;
-        timer = window.setTimeout(tick, 230);
-        return;
-      }
-      timer = window.setTimeout(tick, 16);
-    }
-  };
-  // While the visitor is using a field its hint holds still: pause on
-  // focus (settling on the full example) and resume only if they leave
-  // the field empty.
-  input.addEventListener("focus", () => {
-    window.clearTimeout(timer);
-    input.setAttribute("placeholder", phrases[phrase]);
-  });
-  input.addEventListener("blur", () => {
-    if (!input.value) {
-      chars = 0;
-      deleting = false;
-      tick();
-    }
-  });
-  tick();
 }
 
 function list(value) {
@@ -105,9 +59,85 @@ function motionOK() {
   return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 function pagePad() {
-  const n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--page-pad"));
+  const n = parseFloat(cssVar("--page-pad"));
   return Number.isFinite(n) ? n : 16;
+}
+
+// Which of the three layouts is on screen: "split" (wide), "card"
+// (tablet-ish) or "flow" (phones, short or zoomed windows). styles.css owns
+// the breakpoints and sets --layout in each @media block, so the script
+// never repeats a media query.
+function layoutMode() {
+  const mode = cssVar("--layout");
+  return mode === "split" || mode === "flow" ? mode : "card";
+}
+
+// Typed example hints: type, pause, wipe, next example. They run only while
+// the form is open, and hold still on the full example while a field is
+// focused, resuming on blur only if the visitor left the field empty.
+function typedHints(input, phrases) {
+  const idle = { start() {}, stop() {} };
+  if (!input || !phrases.length) return idle;
+  input.setAttribute("placeholder", phrases[0]);
+  if (!motionOK()) return idle;
+  let phrase = 0;
+  let chars = 0;
+  let deleting = false;
+  let timer = 0;
+  let running = false;
+  const tick = () => {
+    const current = phrases[phrase];
+    if (!deleting) {
+      chars += 1;
+      input.setAttribute("placeholder", current.slice(0, chars));
+      if (chars === current.length) {
+        deleting = true;
+        timer = window.setTimeout(tick, 1235);
+        return;
+      }
+      timer = window.setTimeout(tick, 36);
+    } else {
+      chars -= 1;
+      input.setAttribute("placeholder", current.slice(0, chars));
+      if (chars === 0) {
+        deleting = false;
+        phrase = (phrase + 1) % phrases.length;
+        timer = window.setTimeout(tick, 230);
+        return;
+      }
+      timer = window.setTimeout(tick, 16);
+    }
+  };
+  const restart = () => {
+    window.clearTimeout(timer);
+    chars = 0;
+    deleting = false;
+    tick();
+  };
+  input.addEventListener("focus", () => {
+    window.clearTimeout(timer);
+    input.setAttribute("placeholder", phrases[phrase]);
+  });
+  input.addEventListener("blur", () => {
+    if (running && !input.value) restart();
+  });
+  return {
+    start() {
+      running = true;
+      if (document.activeElement === input || input.value) return;
+      restart();
+    },
+    stop() {
+      running = false;
+      window.clearTimeout(timer);
+      input.setAttribute("placeholder", phrases[phrase]);
+    },
+  };
 }
 
 function safeHref(value) {
@@ -121,6 +151,17 @@ function safeHref(value) {
 
 function isExternal(href) {
   return /^https?:/i.test(href);
+}
+
+// The last path part of a profile URL, e.g. "thomasttrr" from
+// https://github.com/thomasttrr — shown as a quiet hint on the row.
+function handle(href) {
+  try {
+    const parts = new URL(href).pathname.split("/").filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : "";
+  } catch (error) {
+    return "";
+  }
 }
 
 function el(tag, options = {}) {
@@ -151,6 +192,10 @@ const ICONS = {
   pin: () =>
     svg('<path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/>'),
   mail: () => svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>'),
+  external: () => svg('<path d="M7 17 17 7"/><path d="M8.5 7H17v8.5"/>'),
+  arrow: () => svg('<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>'),
+  check: () => svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>'),
+  alert: () => svg('<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5v.01"/>'),
   linkedin: () =>
     svg(
       '<path d="M6.5 9H4.2V20h2.3V9zM5.3 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM20 20h-2.3v-5.5c0-1.7-.6-2.5-1.8-2.5-1.1 0-1.8.8-1.8 2.5V20H11.8V9H14v1.1c.5-.8 1.6-1.5 3-1.5 2.2 0 3 1.5 3 4.2V20z"/>',
@@ -180,6 +225,10 @@ function tabLabel(settings, def) {
   return custom || def.fallback;
 }
 
+function contactOf(settings) {
+  return settings.contact && typeof settings.contact === "object" ? settings.contact : {};
+}
+
 function educationItems(settings) {
   return list(settings.education)
     .map((item) => ({
@@ -191,12 +240,17 @@ function educationItems(settings) {
 
 function experienceItems(settings) {
   return list(settings.experience)
-    .map((item) => ({
-      dates: text(item.dates),
-      role: text(item.role),
-      company: text(item.company),
-      summary: text(item.summary),
-    }))
+    .map((item) => {
+      const dates = text(item.dates);
+      return {
+        dates,
+        // "2020 – Now" style ranges mark the job held today.
+        current: /\b(now|present|current)\b/i.test(dates),
+        role: text(item.role),
+        company: text(item.company),
+        summary: text(item.summary),
+      };
+    })
     .filter((item) => item.role || item.company || item.summary);
 }
 
@@ -223,7 +277,7 @@ function projectItems(settings) {
 }
 
 function visibleTabs(settings) {
-  const contact = settings.contact && typeof settings.contact === "object" ? settings.contact : {};
+  const contact = contactOf(settings);
   const ready = {
     about: strings(settings.about).length > 0 || skillGroups(settings).length > 0 || educationItems(settings).length > 0,
     experience: experienceItems(settings).length > 0,
@@ -261,11 +315,25 @@ function panelShell(tab) {
   });
 }
 
+// Items marked .stagger fade up one after another when their panel opens.
+function numberStagger(panel) {
+  panel.querySelectorAll(".stagger").forEach((node, index) => node.style.setProperty("--i", String(Math.min(index, 7))));
+  return panel;
+}
+
+function newTab(href) {
+  return isExternal(href) ? { target: "_blank", rel: "noopener noreferrer" } : {};
+}
+
+function newTabNote(href) {
+  return isExternal(href) ? el("span", { class: "sr-only", text: " (opens in a new tab)" }) : null;
+}
+
 function renderSkills(groups) {
   if (!groups.length) return null;
   if (groups.length === 1 && !groups[0].group) {
     return el("ul", {
-      class: "chips",
+      class: "chips stagger",
       attrs: { "aria-label": "Skills" },
       children: groups[0].items.map((skill) => el("li", { text: skill })),
     });
@@ -280,7 +348,7 @@ function renderSkills(groups) {
         attrs: group.group ? { "aria-labelledby": headingId } : { "aria-label": "Skills" },
         children: group.items.map((skill) => el("li", { text: skill })),
       });
-      const block = el("div", { class: "skill-group" });
+      const block = el("div", { class: "skill-group stagger" });
       if (group.group) {
         block.append(el("h3", { class: "skill-label", text: group.group, attrs: { id: headingId } }));
       }
@@ -290,11 +358,14 @@ function renderSkills(groups) {
   });
 }
 
-function renderAbout(settings, tab) {
+function renderAbout(settings, tab, ctx) {
   const panel = panelShell(tab);
   panel.append(kicker(tab));
   const prose = el("div", { class: "prose" });
-  strings(settings.about).forEach((paragraph) => prose.append(el("p", { text: paragraph })));
+  // The first paragraph is the lede: one size up, so the pitch reads first.
+  strings(settings.about).forEach((paragraph, index) =>
+    prose.append(el("p", { class: index === 0 ? "lede stagger" : "stagger", text: paragraph }))
+  );
   if (prose.childNodes.length) panel.append(prose);
 
   const skills = renderSkills(skillGroups(settings));
@@ -302,15 +373,40 @@ function renderAbout(settings, tab) {
 
   const school = educationItems(settings);
   if (school.length) {
-    const block = el("div", { class: "education" });
-    block.append(el("p", { class: "kicker", text: "Education" }));
+    const block = el("div", { class: "education stagger" });
+    block.append(el("h3", { class: "skill-label", text: "Education" }));
     school.forEach((item) => {
       block.append(el("p", { class: "degree", text: item.name }));
       if (item.meta) block.append(el("p", { class: "school", text: item.meta }));
     });
     panel.append(block);
   }
-  return panel;
+
+  // Next steps after reading: open the contact form, or see the code.
+  const next = el("div", { class: "next-steps stagger" });
+  if (ctx.canMessage) {
+    const message = el("button", {
+      class: "btn btn-primary",
+      attrs: { type: "button" },
+      children: [el("span", { text: "Send a message" }), ICONS.arrow()],
+    });
+    // detail is 0 for keyboard-triggered clicks: those move focus into the
+    // form; pointer clicks leave the on-screen keyboard closed on phones.
+    message.addEventListener("click", (event) => ctx.messageMe(event.detail === 0));
+    next.append(message);
+  }
+  const github = safeHref(contactOf(settings).github);
+  if (github) {
+    next.append(
+      el("a", {
+        class: "btn btn-secondary",
+        attrs: { href: github, ...newTab(github) },
+        children: [ICONS.github(), el("span", { text: "GitHub" }), newTabNote(github)],
+      })
+    );
+  }
+  if (next.childNodes.length) panel.append(next);
+  return numberStagger(panel);
 }
 
 function renderExperience(settings, tab) {
@@ -318,15 +414,20 @@ function renderExperience(settings, tab) {
   panel.append(kicker(tab));
   const timeline = el("ol", { class: "timeline" });
   experienceItems(settings).forEach((job) => {
-    const copy = el("div");
+    const copy = el("div", { class: "job-copy" });
     if (job.dates) copy.append(el("p", { class: "when", text: job.dates }));
     copy.append(el("h3", { class: "role", text: job.role || job.company }));
     if (job.role && job.company) copy.append(el("p", { class: "company", text: job.company }));
     if (job.summary) copy.append(el("p", { class: "summary", text: job.summary }));
-    timeline.append(el("li", { class: "job", children: [el("span", { class: "rail", attrs: { "aria-hidden": "true" } }), copy] }));
+    timeline.append(
+      el("li", {
+        class: job.current ? "job is-current stagger" : "job stagger",
+        children: [el("span", { class: "rail", attrs: { "aria-hidden": "true" } }), copy],
+      })
+    );
   });
   panel.append(timeline);
-  return panel;
+  return numberStagger(panel);
 }
 
 function renderCerts(settings, tab) {
@@ -339,64 +440,91 @@ function renderCerts(settings, tab) {
     const copy = el("span", { class: "row-copy" });
     copy.append(el("span", { class: "row-title", text: cert.name }));
     if (meta) copy.append(el("span", { class: "row-meta", text: meta }));
-    const pill = el("span", { class: done ? "pill is-done" : "pill", text: done ? "Completed" : "In progress" });
-    const inner = [copy, pill];
+    const pill = el("span", {
+      class: done ? "pill is-done" : "pill",
+      children: [done ? ICONS.check() : null, document.createTextNode(done ? "Completed" : "In progress")],
+    });
     let row;
     if (cert.link) {
       row = el("a", {
         class: "row",
-        attrs: {
-          href: cert.link,
-          ...(isExternal(cert.link) ? { target: "_blank", rel: "noopener noreferrer" } : {}),
-        },
-        children: inner,
+        attrs: { href: cert.link, ...newTab(cert.link) },
+        children: [copy, pill, el("span", { class: "row-arrow", children: [ICONS.external()] }), newTabNote(cert.link)],
       });
-      if (isExternal(cert.link)) row.append(el("span", { class: "sr-only", text: "(opens in a new tab)" }));
     } else {
-      row = el("div", { class: "row", children: inner });
+      row = el("div", { class: "row", children: [copy, pill] });
     }
-    rows.append(el("li", { children: [row] }));
+    rows.append(el("li", { class: "stagger", children: [row] }));
   });
   panel.append(rows);
-  return panel;
+  return numberStagger(panel);
 }
 
 function renderProjects(settings, tab) {
   const panel = panelShell(tab);
   panel.append(kicker(tab));
+  const stack = el("div", { class: "projects" });
   projectItems(settings).forEach((project) => {
-    const card = el("article", { class: "project" });
-    if (project.name) card.append(el("h3", { class: "role", text: project.name }));
+    const card = el("article", { class: "project stagger" });
+    const head = el("div", { class: "project-head" });
+    if (project.name) head.append(el("h3", { class: "role", text: project.name }));
+    if (project.link) {
+      head.append(
+        el("a", {
+          class: "text-link",
+          attrs: { href: project.link, ...newTab(project.link) },
+          children: [
+            document.createTextNode("View project"),
+            project.name ? el("span", { class: "sr-only", text: `: ${project.name}` }) : null,
+            ICONS.external(),
+            newTabNote(project.link),
+          ],
+        })
+      );
+    }
+    card.append(head);
     if (project.summary) card.append(el("p", { class: "summary", text: project.summary }));
     if (project.tags.length) {
-      card.append(el("ul", { class: "chips", children: project.tags.map((tag) => el("li", { text: tag })) }));
+      card.append(
+        el("ul", {
+          class: "chips tags",
+          attrs: { "aria-label": "Built with" },
+          children: project.tags.map((tag) => el("li", { text: tag })),
+        })
+      );
     }
-    if (project.link) {
-      const link = el("a", {
-        class: "text-link",
-        text: "View project",
-        attrs: {
-          href: project.link,
-          ...(isExternal(project.link) ? { target: "_blank", rel: "noopener noreferrer" } : {}),
-        },
-      });
-      if (isExternal(project.link)) link.append(el("span", { class: "sr-only", text: "(opens in a new tab)" }));
-      card.append(link);
-    }
-    panel.append(card);
+    stack.append(card);
   });
-  return panel;
+  panel.append(stack);
+  return numberStagger(panel);
 }
 
-function renderContact(settings, tab, live) {
+function externalRow(icon, label, href) {
+  const hint = handle(href);
+  return el("a", {
+    class: "row contact-row stagger",
+    attrs: { href, ...newTab(href) },
+    children: [
+      icon,
+      el("span", { class: "row-title", text: label }),
+      hint ? el("span", { class: "row-meta row-meta-side", text: hint }) : null,
+      el("span", { class: hint ? "row-arrow" : "row-arrow row-arrow-end", children: [ICONS.external()] }),
+      newTabNote(href),
+    ],
+  });
+}
+
+function renderContact(settings, tab, ctx) {
   const panel = panelShell(tab);
   panel.append(kicker(tab));
-  const contact = settings.contact && typeof settings.contact === "object" ? settings.contact : {};
+  const contact = contactOf(settings);
   const rows = el("div", { class: "rows" });
 
-  const location = text(settings.location);
-  if (location) {
-    rows.append(el("div", { class: "row contact-row", children: [ICONS.pin(), el("span", { class: "row-title", text: location })] }));
+  // Location is information, not a button, so it is drawn as a quiet line
+  // rather than in the same box as the rows you can click.
+  const place = text(settings.location);
+  if (place) {
+    rows.append(el("p", { class: "row row-static stagger", children: [ICONS.pin(), el("span", { class: "row-title", text: place })] }));
   }
 
   const formKey = text(contact.formKey);
@@ -406,95 +534,120 @@ function renderContact(settings, tab, live) {
     // the contact form downward. Messages are delivered by Web3Forms;
     // the real email address never appears in this site's code.
     const bar = el("button", {
-      class: "row contact-row",
-      attrs: { type: "button", "aria-expanded": "false", "aria-controls": "contact-form-wrap", "aria-label": "Send me an email" },
+      class: "row contact-row email-bar stagger",
+      attrs: { type: "button", "aria-expanded": "false", "aria-controls": "contact-form-wrap", "aria-label": "Email: open the contact form" },
       children: [
         ICONS.mail(),
         el("span", { class: "row-title", text: "Email" }),
-        el("span", { class: "row-meta row-meta-side", text: "Tap to send" }),
+        el("span", {
+          class: "row-meta row-meta-side",
+          children: [el("span", { class: "on-touch", text: "Tap to send" }), el("span", { class: "on-mouse", text: "Click to send" })],
+        }),
         el("span", { class: "row-chev", attrs: { "aria-hidden": "true" } }),
       ],
     });
-    const form = el("form", { class: "contact-form", attrs: { action: "https://api.web3forms.com/submit", method: "POST" } });
+    const form = el("form", { class: "contact-form", attrs: { action: FORM_ENDPOINT, method: "POST" } });
     const field = (labelText, control) =>
       el("label", { class: "field", children: [el("span", { class: "field-label", text: labelText }), control] });
     const nameInput = el("input", { attrs: { type: "text", name: "name", autocomplete: "name", required: "" } });
-    const emailInput = el("input", { attrs: { type: "email", name: "email", autocomplete: "email", required: "" } });
+    const emailInput = el("input", { attrs: { type: "email", name: "email", autocomplete: "email", required: "", spellcheck: "false" } });
     const messageInput = el("textarea", { attrs: { name: "message", rows: "4", required: "" } });
-    const sendButton = el("button", { class: "btn btn-primary", text: "Send message", attrs: { type: "submit" } });
+    const sendLabel = el("span", { text: "Send message" });
+    const sendButton = el("button", { class: "btn btn-primary", attrs: { type: "submit" }, children: [sendLabel] });
     const status = el("p", { class: "form-status", attrs: { role: "status" } });
     form.append(
       el("input", { attrs: { type: "hidden", name: "access_key", value: formKey } }),
       el("input", { attrs: { type: "hidden", name: "subject", value: "New message from your portfolio site" } }),
-      el("input", { attrs: { type: "checkbox", name: "botcheck", style: "display: none;" } }),
+      el("input", { attrs: { type: "checkbox", name: "botcheck", tabindex: "-1", style: "display: none;" } }),
       field("Your name", nameInput),
       field("Your email", emailInput),
       field("Message", messageInput),
       sendButton,
       status
     );
-    // Animated hints: each field types out an example, pauses, wipes it,
-    // and types the next one, on a loop.
-    cyclePlaceholder(nameInput, ["Jane Smith", "Alex Johnson", "Maria Garcia", "David Kim"]);
-    cyclePlaceholder(emailInput, ["jane@company.com", "alex@studio.com", "maria@agency.com", "david@corp.com"]);
-    cyclePlaceholder(messageInput, ["Tell me about the role or project", "We have a role you might fit", "I have a project to discuss"]);
+    const hints = [
+      typedHints(nameInput, ["Jane Smith", "Alex Johnson", "Maria Garcia", "David Kim"]),
+      typedHints(emailInput, ["jane@company.com", "alex@studio.com", "maria@agency.com", "david@corp.com"]),
+      typedHints(messageInput, ["Tell me about the role or project", "We have a role you might fit", "I have a project to discuss"]),
+    ];
+
+    const setStatus = (kind, message) => {
+      status.className = kind ? `form-status is-${kind}` : "form-status";
+      status.replaceChildren();
+      if (!message) return;
+      status.append(kind === "success" ? ICONS.check() : ICONS.alert(), el("span", { text: message }));
+    };
+
+    let sending = false;
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      sendButton.disabled = true;
-      status.textContent = "Sending…";
+      if (sending) return;
+      sending = true;
+      // aria-disabled rather than disabled, so focus stays on the button.
+      sendButton.setAttribute("aria-disabled", "true");
+      form.classList.add("is-sending");
+      sendLabel.textContent = "Sending…";
+      setStatus("", "");
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), SEND_TIMEOUT);
       try {
-        const response = await fetch("https://api.web3forms.com/submit", { method: "POST", body: new FormData(form) });
-        const data = await response.json();
+        const response = await fetch(FORM_ENDPOINT, { method: "POST", body: new FormData(form), signal: controller.signal });
+        const data = await response.json().catch(() => null);
         if (data && data.success) {
           form.reset();
-          status.textContent = "Message sent — thank you. I'll get back to you soon.";
-          live.textContent = "";
-          live.textContent = "Your message was sent";
+          hints.forEach((hint) => hint.start());
+          setStatus("success", "Message sent — thank you. I'll get back to you soon.");
         } else {
-          status.textContent = "Something went wrong — please try again.";
+          setStatus("error", "Something went wrong — please try again.");
         }
       } catch (error) {
-        status.textContent = "Could not send — check your connection and try again.";
+        setStatus(
+          "error",
+          error && error.name === "AbortError"
+            ? "This is taking too long — check your connection and try again."
+            : "Could not send — check your connection and try again."
+        );
       }
-      sendButton.disabled = false;
+      window.clearTimeout(timer);
+      sending = false;
+      sendButton.removeAttribute("aria-disabled");
+      form.classList.remove("is-sending");
+      sendLabel.textContent = "Send message";
+      // The status line changes the panel height; let the card follow.
+      ctx.fit({ animate: true });
     });
+
     const wrap = el("div", { class: "form-collapse", attrs: { id: "contact-form-wrap" }, children: [form] });
-    // The app locks the card body's height in px (see lockHeights), so
-    // opening the form must grow that locked height in step with the
-    // unfold — otherwise the form is clipped at the card's bottom edge.
-    const setOpen = (open) => {
-      const body = wrap.closest(".card-body");
-      const panel = wrap.closest(".panel");
-      bar.setAttribute("aria-expanded", open ? "true" : "false");
-      if (!body || !panel) {
+    let revealTimer = 0;
+    const setOpen = (open, options = {}) => {
+      const isOpen = wrap.classList.contains("is-open");
+      if (open !== isOpen) {
+        bar.setAttribute("aria-expanded", open ? "true" : "false");
+        // Measure the card in the target state with the transition off,
+        // then restore and toggle for real, so the wrap's CSS transition
+        // unfolds the form while the card height follows on the same clock.
+        wrap.classList.add("no-anim");
         wrap.classList.toggle("is-open", open);
-        return;
+        ctx.fit({ animate: true, duration: FORM_DURATION });
+        wrap.classList.toggle("is-open", !open);
+        void wrap.offsetHeight;
+        wrap.classList.remove("no-anim");
+        wrap.classList.toggle("is-open", open);
+        hints.forEach((hint) => (open ? hint.start() : hint.stop()));
+        if (!open && wrap.contains(document.activeElement)) bar.focus();
       }
-      // Measure the panel height in the target state with animation off,
-      // using the same height limit lockHeights uses.
-      wrap.classList.add("no-anim");
-      wrap.classList.toggle("is-open", open);
-      const content = panel.offsetHeight;
-      const header = document.querySelector(".card-header");
-      const tablist = document.querySelector(".tablist");
-      const viewport = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-      const limit = Math.max(64, viewport - pagePad() * 2 - (header ? header.offsetHeight : 0) - (tablist ? tablist.offsetHeight : 0) - 2);
-      const to = Math.min(content, limit);
-      const from = body.getBoundingClientRect().height;
-      // Restore the pre-toggle state and flush layout, then toggle for
-      // real so the wrap's CSS transition animates the unfold while the
-      // body height animates alongside it on the same easing.
-      wrap.classList.toggle("is-open", !open);
-      void wrap.offsetHeight;
-      wrap.classList.remove("no-anim");
-      wrap.classList.toggle("is-open", open);
-      body.style.height = `${to}px`;
-      body.style.overflowY = content > to + 1 ? "auto" : "hidden";
-      if (motionOK() && Math.abs(from - to) > 1) {
-        body.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: 450, easing: EASE });
-      }
+      window.clearTimeout(revealTimer);
+      if (!open) return;
+      if (options.focus === "field") nameInput.focus({ preventScroll: true });
+      if (options.focus === "bar") bar.focus({ preventScroll: true });
+      // Once unfolded, bring the form into view if it opened below the fold.
+      revealTimer = window.setTimeout(
+        () => wrap.scrollIntoView({ block: "nearest", behavior: motionOK() ? "smooth" : "auto" }),
+        motionOK() ? FORM_DURATION : 0
+      );
     };
     bar.addEventListener("click", () => setOpen(!wrap.classList.contains("is-open")));
+    ctx.openForm = (options) => setOpen(true, options);
     emailNodes = [bar, wrap];
   }
 
@@ -507,50 +660,19 @@ function renderContact(settings, tab, live) {
   if (emailNodes) rows.append(...emailNodes);
   if (rows.childNodes.length) panel.append(rows);
 
+  // Printed pages cannot use the form, so print says where to find it.
+  if (formKey) {
+    const here = `${location.host}${location.pathname}#contact`.replace(/^www\./, "");
+    panel.append(el("p", { class: "print-only", text: `To send a message, use the form at ${here}` }));
+  }
+
   const actions = el("div", { class: "actions" });
   const resume = safeHref(contact.resume);
   if (resume) {
     actions.append(el("a", { class: "btn btn-secondary", text: "Download resume", attrs: { href: resume, download: "" } }));
   }
   if (actions.childNodes.length) panel.append(actions);
-  return panel;
-}
-
-function externalRow(icon, label, href) {
-  return el("a", {
-    class: "row contact-row",
-    attrs: { href, target: "_blank", rel: "noopener noreferrer" },
-    children: [icon, el("span", { class: "row-title", text: label }), el("span", { class: "sr-only", text: "(opens in a new tab)" })],
-  });
-}
-
-async function copyText(value) {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(value);
-      return true;
-    }
-  } catch (error) {
-    /* try the older path below */
-  }
-  const area = document.createElement("textarea");
-  area.value = value;
-  area.setAttribute("readonly", "");
-  area.style.position = "fixed";
-  area.style.top = "0";
-  area.style.left = "0";
-  area.style.opacity = "0";
-  document.body.append(area);
-  area.focus();
-  area.select();
-  let ok = false;
-  try {
-    ok = document.execCommand("copy");
-  } catch (error) {
-    ok = false;
-  }
-  area.remove();
-  return ok;
+  return numberStagger(panel);
 }
 
 function mountPhoto(wrap, photoLayer, src, name) {
@@ -559,8 +681,8 @@ function mountPhoto(wrap, photoLayer, src, name) {
   if (!path) return;
   const img = new Image();
   img.alt = name ? `Portrait of ${name}` : "Portrait";
-  img.width = 92;
-  img.height = 92;
+  img.width = 96;
+  img.height = 96;
   img.decoding = "async";
   img.addEventListener("load", () => {
     const mono = wrap.querySelector(".monogram");
@@ -578,12 +700,37 @@ function applyAccent(card, value) {
   }
 }
 
+// Search engines read this description of the person, built from the same
+// settings as the page. No email address, ever.
+function addStructuredData(settings) {
+  const contact = contactOf(settings);
+  const photo = safeHref(settings.photo);
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: text(settings.name) || undefined,
+    description: text(settings.title) || undefined,
+    url: `${location.origin}${location.pathname}`,
+    image: photo ? new URL(photo, location.href).href : undefined,
+    homeLocation: text(settings.location) ? { "@type": "Place", name: text(settings.location) } : undefined,
+    sameAs: [safeHref(contact.github), safeHref(contact.linkedin)].filter(isExternal),
+    knowsAbout: skillGroups(settings).flatMap((group) => group.items),
+  };
+  document.head.append(el("script", { text: JSON.stringify(data), attrs: { type: "application/ld+json" } }));
+}
+
 function boot(settings) {
   const main = document.querySelector("#app");
   const name = text(settings.name);
   const title = text(settings.title);
+  const place = text(settings.location);
   const tabs = visibleTabs(settings);
-  const live = el("div", { class: "sr-only", attrs: { id: "live", "aria-live": "polite" } });
+  const ctx = {
+    canMessage: Boolean(text(contactOf(settings).formKey)) && tabs.some((tab) => tab.id === "contact"),
+    fit: () => {},
+    openForm: null,
+    messageMe: () => {},
+  };
 
   const photoLayer = el("div", { class: "card-cover-photo" });
   const avatar = el("div", { class: "avatar-wrap" });
@@ -600,6 +747,8 @@ function boot(settings) {
       })
     );
   }
+  // Shown under the status in the wide layout only; Contact lists it too.
+  if (place) identity.append(el("p", { class: "where", children: [ICONS.pin(), el("span", { text: place })] }));
 
   const header = el("header", {
     class: "card-header",
@@ -610,23 +759,29 @@ function boot(settings) {
   });
 
   const body = el("div", { class: "card-body" });
-  const panels = {
-    about: tabs.some((tab) => tab.id === "about") ? renderAbout(settings, tabs.find((tab) => tab.id === "about")) : null,
-    experience: tabs.some((tab) => tab.id === "experience") ? renderExperience(settings, tabs.find((tab) => tab.id === "experience")) : null,
-    certifications: tabs.some((tab) => tab.id === "certifications") ? renderCerts(settings, tabs.find((tab) => tab.id === "certifications")) : null,
-    projects: tabs.some((tab) => tab.id === "projects") ? renderProjects(settings, tabs.find((tab) => tab.id === "projects")) : null,
-    contact: tabs.some((tab) => tab.id === "contact") ? renderContact(settings, tabs.find((tab) => tab.id === "contact"), live) : null,
+  const renderers = {
+    about: renderAbout,
+    experience: renderExperience,
+    certifications: renderCerts,
+    projects: renderProjects,
+    contact: renderContact,
   };
+  const panels = {};
   tabs.forEach((tab) => {
+    panels[tab.id] = renderers[tab.id](settings, tab, ctx);
     panels[tab.id].hidden = true;
     body.append(panels[tab.id]);
   });
 
-  const tablist = el("div", { class: "tablist", attrs: { role: "tablist", "aria-label": "Profile sections", "aria-orientation": "horizontal" } });
+  const indicator = el("span", { class: "tab-indicator", attrs: { "aria-hidden": "true" } });
+  const tablist = el("div", {
+    class: "tablist",
+    attrs: { role: "tablist", "aria-label": "Profile sections" },
+    children: [indicator],
+  });
   const buttons = tabs.map((tab) => {
     const button = el("button", {
       class: "tab",
-      text: tab.label,
       attrs: {
         type: "button",
         role: "tab",
@@ -635,19 +790,28 @@ function boot(settings) {
         "aria-selected": "false",
         tabindex: "-1",
       },
+      children: [
+        el("span", { class: "tab-num", text: tab.number, attrs: { "aria-hidden": "true" } }),
+        el("span", { class: "tab-label", text: tab.label }),
+      ],
     });
     button.dataset.section = tab.id;
     tablist.append(button);
     return button;
   });
 
-  const card = el("article", { class: "card", children: [header, body, tablist] });
+  // DOM order is header → tabs → panels, so keyboard and screen reader
+  // users meet the tabs before the panel they control (the ARIA tabs
+  // pattern). CSS still draws the tab bar under the panel on small screens.
+  const card = el("article", { class: "card", children: [header, tablist, body] });
   if (name) card.setAttribute("aria-labelledby", "profile-name");
   applyAccent(card, settings.accent);
   mountPhoto(avatar, photoLayer, settings.photo, name);
 
   let current = "";
+  let mode = layoutMode();
   let flights = [];
+  let heightFlights = [];
 
   function viewportHeight() {
     return window.visualViewport ? window.visualViewport.height : window.innerHeight;
@@ -658,60 +822,120 @@ function boot(settings) {
     flights = [];
   }
 
-  function bodyLimit(headerHeight) {
-    return Math.max(64, viewportHeight() - pagePad() * 2 - headerHeight - tablist.offsetHeight - 2);
+  // A soft fade at the bottom edge of the panel while more is below.
+  function updateScrollHint() {
+    const more = mode !== "flow" && body.scrollHeight - body.clientHeight - body.scrollTop > 2;
+    body.classList.toggle("has-more", more);
   }
 
-  function lockHeights(animate, headerFrom) {
+  // Size the card body to its panel, within the screen. In the card and
+  // split layouts the body height is locked in px (animated between tabs);
+  // in the flow layout the page simply scrolls, so the locks come off.
+  function fit(options = {}) {
     const bodyFrom = body.getBoundingClientRect().height;
+    const headerFrom = options.headerFrom != null ? options.headerFrom : header.getBoundingClientRect().height;
+    heightFlights.forEach((anim) => anim.cancel());
+    heightFlights = [];
+    if (mode === "flow") {
+      header.style.height = "";
+      body.style.height = "";
+      body.style.overflowY = "";
+      updateScrollHint();
+      return;
+    }
     header.style.height = "auto";
     const headerTo = header.offsetHeight;
     const panel = body.querySelector(".panel:not([hidden])");
     const content = panel ? panel.offsetHeight : 0;
-    const bodyTo = Math.min(content, bodyLimit(headerTo));
+    let floor = 0;
+    let limit;
+    if (mode === "split") {
+      // Header and tabs share the left column; the body spans the right
+      // one and is never shorter than that column.
+      floor = headerTo + tablist.offsetHeight;
+      limit = viewportHeight() - (main.getBoundingClientRect().top + window.scrollY) - pagePad() - 2;
+    } else {
+      limit = viewportHeight() - pagePad() * 2 - headerTo - tablist.offsetHeight - 2;
+    }
+    const bodyTo = Math.max(floor, Math.min(content, Math.max(64, limit)));
     body.style.overflowY = content > bodyTo + 1 ? "auto" : "hidden";
     header.style.height = `${headerTo}px`;
     body.style.height = `${bodyTo}px`;
-    if (!animate) return;
+    updateScrollHint();
+    if (!options.animate || !motionOK()) return;
+    const duration = options.duration || DURATION;
     if (Math.abs(headerFrom - headerTo) > 1) {
-      flights.push(header.animate([{ height: `${headerFrom}px` }, { height: `${headerTo}px` }], { duration: DURATION, easing: EASE }));
+      heightFlights.push(header.animate([{ height: `${headerFrom}px` }, { height: `${headerTo}px` }], { duration, easing: EASE }));
     }
     if (Math.abs(bodyFrom - bodyTo) > 1) {
-      flights.push(body.animate([{ height: `${bodyFrom}px` }, { height: `${bodyTo}px` }], { duration: DURATION, easing: EASE }));
+      const anim = body.animate([{ height: `${bodyFrom}px` }, { height: `${bodyTo}px` }], { duration, easing: EASE });
+      anim.addEventListener("finish", updateScrollHint);
+      heightFlights.push(anim);
+    }
+  }
+  ctx.fit = fit;
+
+  // The tab highlight glides to the selected tab: under it in the tab bar,
+  // beside it in the wide layout's side nav.
+  function placeIndicator(animate) {
+    const active = buttons.find((button) => button.getAttribute("aria-selected") === "true");
+    if (!active) return;
+    indicator.classList.toggle("no-anim", !animate);
+    indicator.style.width = `${active.offsetWidth}px`;
+    indicator.style.height = `${active.offsetHeight}px`;
+    indicator.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+    if (!animate) {
+      void indicator.offsetWidth;
+      indicator.classList.remove("no-anim");
     }
   }
 
   function playAvatar(first) {
     const last = avatar.getBoundingClientRect();
-    if (!first.width || !last.width) return;
+    if (!first.width || !last.width) return false;
     const dx = first.left + first.width / 2 - (last.left + last.width / 2);
     const dy = first.top + first.height / 2 - (last.top + last.height / 2);
     const scale = first.width / last.width;
-    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(scale - 1) < 0.01) return;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(scale - 1) < 0.01) return false;
     flights.push(
       avatar.animate(
         [{ transform: `translate(${dx}px, ${dy}px) scale(${scale})` }, { transform: "none" }],
         { duration: DURATION, easing: EASE }
       )
     );
+    return true;
+  }
+
+  // Panels slide in from the side you moved toward (right for a later tab,
+  // left for an earlier one); their items follow in a short stagger.
+  function enter(panel, direction) {
+    panel.style.setProperty("--enter-x", `${direction * 14}px`);
+    panel.classList.remove("is-entering");
+    void panel.offsetWidth;
+    panel.classList.add("is-entering");
   }
 
   function select(id, options) {
     const tab = tabs.find((item) => item.id === id);
     if (!tab || !panels[id]) return;
-    const animate = Boolean(options.animate && motionOK() && current);
-    const wasCompact = card.classList.contains("is-compact");
-    const willCompact = id !== "about";
+    mode = layoutMode();
+    const changed = current !== id;
+    const animate = Boolean(options.animate && motionOK() && current && changed);
+    const fromIndex = tabs.findIndex((item) => item.id === current);
+    const toIndex = tabs.findIndex((item) => item.id === id);
     cancelMotion();
 
     const headerFrom = header.getBoundingClientRect().height;
-    const avatarFrom = willCompact !== wasCompact ? avatar.getBoundingClientRect() : null;
+    const avatarFrom = avatar.getBoundingClientRect();
 
-    card.classList.toggle("is-compact", willCompact);
+    // The big centred header belongs to About in the card layout; other
+    // tabs, and every tab on phones, use the compact one.
+    card.classList.toggle("is-compact", mode === "flow" || (mode === "card" && id !== "about"));
     tabs.forEach((item) => {
       const on = item.id === id;
       panels[item.id].hidden = !on;
-      panels[item.id].classList.toggle("is-active", on);
+      panels[item.id].tabIndex = on ? 0 : -1;
+      if (!on) panels[item.id].classList.remove("is-entering");
     });
     buttons.forEach((button) => {
       const on = button.dataset.section === id;
@@ -719,20 +943,28 @@ function boot(settings) {
       button.tabIndex = on ? 0 : -1;
       if (on && options.focus) button.focus();
     });
+    tablist.setAttribute("aria-orientation", mode === "split" ? "vertical" : "horizontal");
 
-    lockHeights(animate, headerFrom);
-    if (animate && avatarFrom) {
-      playAvatar(avatarFrom);
-      flights.push(
-        identity.animate(
-          [
-            { opacity: 0, offset: 0 },
-            { opacity: 0, offset: 0.4 },
-            { opacity: 1, offset: 1 },
-          ],
-          { duration: DURATION, easing: "ease-out" }
-        )
-      );
+    // On phones the page itself scrolls; a new tab starts at its top.
+    if (mode === "flow" && changed && current && window.scrollY > 0) window.scrollTo(0, 0);
+    if (changed) body.scrollTop = 0;
+
+    fit({ animate, headerFrom });
+    placeIndicator(animate);
+    if (animate) {
+      if (playAvatar(avatarFrom)) {
+        flights.push(
+          identity.animate(
+            [
+              { opacity: 0, offset: 0 },
+              { opacity: 0, offset: 0.4 },
+              { opacity: 1, offset: 1 },
+            ],
+            { duration: DURATION, easing: "ease-out" }
+          )
+        );
+      }
+      enter(panels[id], toIndex > fromIndex ? 1 : -1);
     }
 
     current = id;
@@ -742,19 +974,24 @@ function boot(settings) {
     document.title = id === "about" && title ? `${name || "Portfolio"} — ${title}` : `${name || "Portfolio"} — ${tab.label}`;
   }
 
+  ctx.messageMe = (viaKeyboard) => {
+    select("contact", { animate: true, history: "push" });
+    if (ctx.openForm) ctx.openForm({ focus: viaKeyboard ? "field" : "bar" });
+  };
+
   buttons.forEach((button) => {
     button.addEventListener("click", () => select(button.dataset.section, { animate: true, history: "push" }));
   });
 
   tablist.addEventListener("keydown", (event) => {
-    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
     if (!keys.includes(event.key)) return;
     const index = buttons.indexOf(document.activeElement);
     if (index === -1) return;
     event.preventDefault();
     let next = index;
-    if (event.key === "ArrowRight") next = (index + 1) % buttons.length;
-    if (event.key === "ArrowLeft") next = (index - 1 + buttons.length) % buttons.length;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % buttons.length;
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = (index - 1 + buttons.length) % buttons.length;
     if (event.key === "Home") next = 0;
     if (event.key === "End") next = buttons.length - 1;
     select(buttons[next].dataset.section, { animate: true, history: "push", focus: true });
@@ -773,21 +1010,37 @@ function boot(settings) {
     });
   });
 
+  body.addEventListener("scroll", updateScrollHint, { passive: true });
+
+  // A soft light follows the pointer across clickable rows (mouse only).
+  if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    card.addEventListener("pointermove", (event) => {
+      const surface = event.target.closest("a.row, button.row");
+      if (!surface) return;
+      const box = surface.getBoundingClientRect();
+      surface.style.setProperty("--mx", `${Math.round(event.clientX - box.left)}px`);
+      surface.style.setProperty("--my", `${Math.round(event.clientY - box.top)}px`);
+    });
+  }
+
   card.style.visibility = "hidden";
   main.replaceChildren(card);
-  document.body.append(live);
 
   const requested = HASH_TO_ID[(location.hash || "").replace("#", "").toLowerCase()];
   const start = tabs.some((tab) => tab.id === requested) ? requested : tabs[0] && tabs[0].id;
   if (start) select(start, { animate: false, history: "replace" });
   card.style.visibility = "";
-  requestAnimationFrame(() => card.classList.add("is-ready"));
+  if (motionOK()) {
+    card.classList.add("is-intro");
+    if (start) enter(panels[start], 0);
+  }
 
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => {
       if (current) select(current, { animate: false, history: "none" });
     });
   }
+  addStructuredData(settings);
 }
 
 function start() {
