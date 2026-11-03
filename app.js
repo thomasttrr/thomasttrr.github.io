@@ -43,20 +43,20 @@ function cyclePlaceholder(input, phrases) {
       input.setAttribute("placeholder", current.slice(0, chars));
       if (chars === current.length) {
         deleting = true;
-        window.setTimeout(tick, 1900);
+        window.setTimeout(tick, 1235);
         return;
       }
-      window.setTimeout(tick, 55);
+      window.setTimeout(tick, 36);
     } else {
       chars -= 1;
       input.setAttribute("placeholder", current.slice(0, chars));
       if (chars === 0) {
         deleting = false;
         phrase = (phrase + 1) % phrases.length;
-        window.setTimeout(tick, 350);
+        window.setTimeout(tick, 230);
         return;
       }
-      window.setTimeout(tick, 24);
+      window.setTimeout(tick, 16);
     }
   };
   tick();
