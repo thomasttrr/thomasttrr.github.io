@@ -1832,3 +1832,113 @@ a.contact-row {
     animation: none !important;
   }
 }
+
+/* ---------- Executive theme (owner's pick, 2026-11-02) ----------
+   Flat and to the point: no page glow, no grain, no glass blur.
+   Solid surfaces, hairline borders, and a tighter radius scale.
+   This layer restyles; it does not change layout or behaviour. */
+
+body {
+  background: #060607;
+}
+
+body::before,
+body::after {
+  display: none;
+}
+
+.card {
+  --radius: 14px;
+  background: #0c0c0e;
+  border-color: rgb(255 255 255 / 0.12);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.card-cover {
+  background: none;
+}
+
+.avatar-wrap {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.14);
+}
+
+.boot {
+  border-radius: 14px;
+}
+
+.name {
+  letter-spacing: -0.02em;
+}
+
+.status {
+  border-radius: 8px;
+}
+
+.tab {
+  border-radius: 8px;
+}
+
+.row {
+  border-radius: 10px;
+}
+
+.project {
+  border-radius: 12px;
+}
+
+.skill-group .chips li,
+.chips.tags li {
+  border-radius: 8px;
+  background: transparent;
+}
+
+.btn {
+  border-radius: 10px;
+}
+
+.field input,
+.field textarea {
+  border-radius: 10px;
+}
+
+@media (min-width: 800px) and (min-height: 600px) {
+  .name {
+    font-size: 27px;
+  }
+
+  .card-header {
+    border-right: 1px solid rgb(255 255 255 / 0.07);
+  }
+
+  .tablist {
+    border-right: 1px solid rgb(255 255 255 / 0.07);
+    margin-right: -1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tablist {
+    border-radius: 14px;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: #0c0c0e;
+  }
+}
+
+/* The print sheet stays paper-white; the theme above is screen-only. */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .card {
+    background: none;
+    box-shadow: none;
+  }
+
+  .avatar-wrap {
+    box-shadow: none;
+  }
+}
