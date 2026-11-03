@@ -778,10 +778,19 @@ a.contact-row {
     --page-pad: 8px;
   }
 
+  /* Flat page background on phones: the desktop glow gradients sit in the
+     thin margin around the near-full-width card and read as light leaking
+     out of the card's top-right corner. */
+  body::before,
+  body::after {
+    display: none;
+  }
+
   body {
     display: block;
     min-height: 0;
     padding: var(--page-pad) var(--page-pad) 0;
+    background: #050505;
   }
 
   main {
