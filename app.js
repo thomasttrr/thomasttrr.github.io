@@ -351,22 +351,21 @@ function renderContact(settings, tab, live) {
 
   const email = text(contact.email);
   if (email && /^[^\s<>"]+@[^\s<>"]+$/.test(email)) {
-    const hint = el("span", { class: "row-meta", text: "Copy" });
-    const button = el("button", {
-      class: "row contact-row",
-      attrs: { type: "button", "aria-label": `Copy email address ${email}` },
-      children: [ICONS.mail(), el("span", { class: "row-copy", children: [el("span", { class: "row-title", text: email }), hint] })],
-    });
-    button.addEventListener("click", async () => {
-      const copied = await copyText(email);
-      hint.textContent = copied ? "Copied" : "Could not copy";
-      live.textContent = "";
-      live.textContent = copied ? "Email address copied" : "Could not copy the email address";
-      window.setTimeout(() => {
-        if (hint.textContent !== "Copy") hint.textContent = "Copy";
-      }, 2000);
-    });
-    rows.append(button);
+    // The address itself is never shown on the page: the row reads "Email"
+    // and tapping it opens the visitor's mail app with the address filled in.
+    rows.append(
+      el("a", {
+        class: "row contact-row",
+        attrs: { href: `mailto:${email}`, "aria-label": "Send me an email" },
+        children: [
+          ICONS.mail(),
+          el("span", {
+            class: "row-copy",
+            children: [el("span", { class: "row-title", text: "Email" }), el("span", { class: "row-meta", text: "Tap to send" })],
+          }),
+        ],
+      })
+    );
   }
 
   const linkedin = safeHref(contact.linkedin);
