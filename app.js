@@ -27,6 +27,41 @@ function text(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function cyclePlaceholder(input, phrases) {
+  if (!input || !phrases.length) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    input.setAttribute("placeholder", phrases[0]);
+    return;
+  }
+  let phrase = 0;
+  let chars = 0;
+  let deleting = false;
+  const tick = () => {
+    const current = phrases[phrase];
+    if (!deleting) {
+      chars += 1;
+      input.setAttribute("placeholder", current.slice(0, chars));
+      if (chars === current.length) {
+        deleting = true;
+        window.setTimeout(tick, 1900);
+        return;
+      }
+      window.setTimeout(tick, 55);
+    } else {
+      chars -= 1;
+      input.setAttribute("placeholder", current.slice(0, chars));
+      if (chars === 0) {
+        deleting = false;
+        phrase = (phrase + 1) % phrases.length;
+        window.setTimeout(tick, 350);
+        return;
+      }
+      window.setTimeout(tick, 24);
+    }
+  };
+  tick();
+}
+
 function list(value) {
   return Array.isArray(value) ? value.filter((item) => item && typeof item === "object") : [];
 }
@@ -179,7 +214,7 @@ function visibleTabs(settings) {
     experience: experienceItems(settings).length > 0,
     certifications: certItems(settings).length > 0,
     projects: projectItems(settings).length > 0,
-    contact: Boolean(text(settings.location) || text(contact.email) || text(contact.linkedin) || text(contact.github) || text(contact.resume)),
+    contact: Boolean(text(settings.location) || text(contact.formKey) || text(contact.linkedin) || text(contact.github) || text(contact.resume)),
   };
   return TAB_DEFS.filter((def) => ready[def.id]).map((def, index) => ({
     ...def,
@@ -349,42 +384,115 @@ function renderContact(settings, tab, live) {
     rows.append(el("div", { class: "row contact-row", children: [ICONS.pin(), el("span", { class: "row-title", text: location })] }));
   }
 
-  const email = text(contact.email);
-  if (email && /^[^\s<>"]+@[^\s<>"]+$/.test(email)) {
-    // The address itself is never shown on the page: the row reads "Email"
-    // and tapping it opens the visitor's mail app with the address filled in.
-    rows.append(
-      el("a", {
-        class: "row contact-row",
-        attrs: { href: `mailto:${email}`, "aria-label": "Send me an email" },
-        children: [
-          ICONS.mail(),
-          el("span", {
-            class: "row-copy",
-            children: [el("span", { class: "row-title", text: "Email" }), el("span", { class: "row-meta", text: "Tap to send" })],
-          }),
-        ],
-      })
+  const formKey = text(contact.formKey);
+  let emailNodes = null;
+  if (formKey) {
+    // The slim Email bar, last in the list: tapping it smoothly expands
+    // the contact form downward. Messages are delivered by Web3Forms;
+    // the real email address never appears in this site's code.
+    const bar = el("button", {
+      class: "row contact-row",
+      attrs: { type: "button", "aria-expanded": "false", "aria-controls": "contact-form-wrap", "aria-label": "Send me an email" },
+      children: [
+        ICONS.mail(),
+        el("span", { class: "row-title", text: "Email" }),
+        el("span", { class: "row-meta row-meta-side", text: "Tap to send" }),
+        el("span", { class: "row-chev", attrs: { "aria-hidden": "true" } }),
+      ],
+    });
+    const form = el("form", { class: "contact-form", attrs: { action: "https://api.web3forms.com/submit", method: "POST" } });
+    const field = (labelText, control) =>
+      el("label", { class: "field", children: [el("span", { class: "field-label", text: labelText }), control] });
+    const nameInput = el("input", { attrs: { type: "text", name: "name", autocomplete: "name", required: "" } });
+    const emailInput = el("input", { attrs: { type: "email", name: "email", autocomplete: "email", required: "" } });
+    const messageInput = el("textarea", { attrs: { name: "message", rows: "4", required: "" } });
+    const sendButton = el("button", { class: "btn btn-primary", text: "Send message", attrs: { type: "submit" } });
+    const status = el("p", { class: "form-status", attrs: { role: "status" } });
+    form.append(
+      el("input", { attrs: { type: "hidden", name: "access_key", value: formKey } }),
+      el("input", { attrs: { type: "hidden", name: "subject", value: "New message from your portfolio site" } }),
+      el("input", { attrs: { type: "checkbox", name: "botcheck", style: "display: none;" } }),
+      field("Your name", nameInput),
+      field("Your email", emailInput),
+      field("Message", messageInput),
+      sendButton,
+      status
     );
+    // Animated hints: each field types out an example, pauses, wipes it,
+    // and types the next one, on a loop.
+    cyclePlaceholder(nameInput, ["Jane Smith", "Alex Johnson", "Maria Garcia", "David Kim"]);
+    cyclePlaceholder(emailInput, ["jane@company.com", "alex@studio.com", "maria@agency.com", "david@corp.com"]);
+    cyclePlaceholder(messageInput, ["Tell me about the role or project", "We have a role you might fit", "I have a project to discuss"]);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      sendButton.disabled = true;
+      status.textContent = "Sending…";
+      try {
+        const response = await fetch("https://api.web3forms.com/submit", { method: "POST", body: new FormData(form) });
+        const data = await response.json();
+        if (data && data.success) {
+          form.reset();
+          status.textContent = "Message sent — thank you. I'll get back to you soon.";
+          live.textContent = "";
+          live.textContent = "Your message was sent";
+        } else {
+          status.textContent = "Something went wrong — please try again.";
+        }
+      } catch (error) {
+        status.textContent = "Could not send — check your connection and try again.";
+      }
+      sendButton.disabled = false;
+    });
+    const wrap = el("div", { class: "form-collapse", attrs: { id: "contact-form-wrap" }, children: [form] });
+    // The app locks the card body's height in px (see lockHeights), so
+    // opening the form must grow that locked height in step with the
+    // unfold — otherwise the form is clipped at the card's bottom edge.
+    const setOpen = (open) => {
+      const body = wrap.closest(".card-body");
+      const panel = wrap.closest(".panel");
+      bar.setAttribute("aria-expanded", open ? "true" : "false");
+      if (!body || !panel) {
+        wrap.classList.toggle("is-open", open);
+        return;
+      }
+      // Measure the panel height in the target state with animation off,
+      // using the same height limit lockHeights uses.
+      wrap.classList.add("no-anim");
+      wrap.classList.toggle("is-open", open);
+      const content = panel.offsetHeight;
+      const header = document.querySelector(".card-header");
+      const tablist = document.querySelector(".tablist");
+      const viewport = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const limit = Math.max(64, viewport - pagePad() * 2 - (header ? header.offsetHeight : 0) - (tablist ? tablist.offsetHeight : 0) - 2);
+      const to = Math.min(content, limit);
+      const from = body.getBoundingClientRect().height;
+      // Restore the pre-toggle state and flush layout, then toggle for
+      // real so the wrap's CSS transition animates the unfold while the
+      // body height animates alongside it on the same easing.
+      wrap.classList.toggle("is-open", !open);
+      void wrap.offsetHeight;
+      wrap.classList.remove("no-anim");
+      wrap.classList.toggle("is-open", open);
+      body.style.height = `${to}px`;
+      body.style.overflowY = content > to + 1 ? "auto" : "hidden";
+      if (motionOK() && Math.abs(from - to) > 1) {
+        body.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: 450, easing: EASE });
+      }
+    };
+    bar.addEventListener("click", () => setOpen(!wrap.classList.contains("is-open")));
+    emailNodes = [bar, wrap];
   }
 
   const linkedin = safeHref(contact.linkedin);
   if (linkedin) rows.append(externalRow(ICONS.linkedin(), "LinkedIn", linkedin));
   const github = safeHref(contact.github);
   if (github) rows.append(externalRow(ICONS.github(), "GitHub", github));
+  // The Email bar goes last, under GitHub, so expanding the form pushes
+  // nothing else out of the way.
+  if (emailNodes) rows.append(...emailNodes);
   if (rows.childNodes.length) panel.append(rows);
 
   const actions = el("div", { class: "actions" });
-  const buttonText = text(contact.buttonText);
-  if (email && buttonText && /^[^\s<>"]+@[^\s<>"]+$/.test(email)) {
-    actions.append(
-      el("a", {
-        class: "btn btn-primary",
-        text: buttonText,
-        attrs: { href: `mailto:${email}?subject=${encodeURIComponent(buttonText)}` },
-      })
-    );
-  }
   const resume = safeHref(contact.resume);
   if (resume) {
     actions.append(el("a", { class: "btn btn-secondary", text: "Download resume", attrs: { href: resume, download: "" } }));

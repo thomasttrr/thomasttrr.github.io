@@ -32,4 +32,4 @@ Google AI Essentials · AI for Everyone · Generative AI for Everyone
 
 Associate degree, Information & Technology
 
-[thomasttrr@gmail.com](mailto:thomasttrr@gmail.com)
+Email: through the Contact page on the site (the address is kept out of plain text on purpose)

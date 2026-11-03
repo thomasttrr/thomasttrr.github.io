@@ -647,6 +647,137 @@ button.row:hover {
   margin-top: 16px;
 }
 
+/* Contact form (preview mockup): fields borrow the contact rows' look so
+   the form sits naturally in the card. The collapse animates grid rows
+   (0fr -> 1fr) on the site's own easing, so the open/close is smooth with
+   no height guessing; fields fade up in a short stagger as it opens. */
+.form-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: -8px;
+  visibility: hidden;
+  transition: grid-template-rows 450ms var(--ease), visibility 0s linear 450ms;
+}
+
+.form-collapse.is-open {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 450ms var(--ease), visibility 0s;
+}
+
+.form-collapse.no-anim {
+  transition: none;
+}
+
+.form-collapse > .contact-form {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.contact-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 0;
+  padding-top: 12px;
+}
+
+.contact-form .field,
+.contact-form .btn {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 320ms var(--ease), transform 320ms var(--ease);
+}
+
+.form-collapse.is-open .field,
+.form-collapse.is-open .btn {
+  opacity: 1;
+  transform: none;
+}
+
+.form-collapse.is-open .field:nth-of-type(1) {
+  transition-delay: 70ms;
+}
+
+.form-collapse.is-open .field:nth-of-type(2) {
+  transition-delay: 120ms;
+}
+
+.form-collapse.is-open .field:nth-of-type(3) {
+  transition-delay: 170ms;
+}
+
+.form-collapse.is-open .btn {
+  transition-delay: 220ms;
+}
+
+.form-status {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.form-status:empty {
+  display: none;
+}
+
+/* Slim bar: the hint sits on the same line as the title, pushed right. */
+.row-meta-side {
+  margin: 0 0 0 auto;
+}
+
+.row-chev {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: 10px;
+  border-right: 1.5px solid rgb(255 255 255 / 0.45);
+  border-bottom: 1.5px solid rgb(255 255 255 / 0.45);
+  transform: rotate(45deg);
+  transition: transform 450ms var(--ease);
+}
+
+button[aria-expanded="true"] .row-chev {
+  transform: rotate(225deg);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field-label {
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 14px;
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  resize: vertical;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--text-faint);
+}
+
+.contact-form .btn {
+  width: 100%;
+  margin-top: 2px;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

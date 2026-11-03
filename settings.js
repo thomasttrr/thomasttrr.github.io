@@ -143,13 +143,16 @@ const SETTINGS = {
   ],
 
   contact: {
-    email: "thomasttrr@gmail.com",
+    // The contact form is delivered by Web3Forms, which forwards messages
+    // to the inbox. This key is a public label for the form, not a
+    // password. The real email address is intentionally not written
+    // anywhere in this site's code.
+    formKey: "a65fe5d5-e64a-41ea-aa1e-ee1643a657c7",
     linkedin: "",
     github: "https://github.com/thomasttrr",
     // After you export a resume with the phone number removed, save it as
     // assets/Thomas-Tucker-Resume.pdf and set this to that path.
     resume: "",
-    buttonText: "Work together",
   },
 
   tabs: {
