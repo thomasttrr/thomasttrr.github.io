@@ -36,6 +36,7 @@ function cyclePlaceholder(input, phrases) {
   let phrase = 0;
   let chars = 0;
   let deleting = false;
+  let timer = 0;
   const tick = () => {
     const current = phrases[phrase];
     if (!deleting) {
@@ -43,22 +44,36 @@ function cyclePlaceholder(input, phrases) {
       input.setAttribute("placeholder", current.slice(0, chars));
       if (chars === current.length) {
         deleting = true;
-        window.setTimeout(tick, 1235);
+        timer = window.setTimeout(tick, 1235);
         return;
       }
-      window.setTimeout(tick, 36);
+      timer = window.setTimeout(tick, 36);
     } else {
       chars -= 1;
       input.setAttribute("placeholder", current.slice(0, chars));
       if (chars === 0) {
         deleting = false;
         phrase = (phrase + 1) % phrases.length;
-        window.setTimeout(tick, 230);
+        timer = window.setTimeout(tick, 230);
         return;
       }
-      window.setTimeout(tick, 16);
+      timer = window.setTimeout(tick, 16);
     }
   };
+  // While the visitor is using a field its hint holds still: pause on
+  // focus (settling on the full example) and resume only if they leave
+  // the field empty.
+  input.addEventListener("focus", () => {
+    window.clearTimeout(timer);
+    input.setAttribute("placeholder", phrases[phrase]);
+  });
+  input.addEventListener("blur", () => {
+    if (!input.value) {
+      chars = 0;
+      deleting = false;
+      tick();
+    }
+  });
   tick();
 }
 

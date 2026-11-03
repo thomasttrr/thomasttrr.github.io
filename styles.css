@@ -773,6 +773,14 @@ button[aria-expanded="true"] .row-chev {
   color: var(--text-faint);
 }
 
+/* The site focus outline sits 3px outside the box, but the fields span
+   the form's full width inside an overflow-hidden wrap, so the ring's
+   sides were clipped at the panel edge. Pull it inside, like the tabs. */
+.field input:focus-visible,
+.field textarea:focus-visible {
+  outline-offset: -2px;
+}
+
 .contact-form .btn {
   width: 100%;
   margin-top: 2px;
