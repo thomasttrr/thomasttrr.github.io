@@ -1942,3 +1942,44 @@ body::after {
     box-shadow: none;
   }
 }
+
+/* ---------- Colour (owner's pass, 2026-11-04) ----------
+   Two muted hues, used only where colour carries meaning: the
+   site's green (--live) for "active / current / done", and a dusty
+   amber for "in progress". Everything else stays monochrome.
+   Screen only — the print sheet stays black on white. */
+@media screen {
+  /* The job held today gets the same green as the available dot. */
+  .job.is-current .rail::after {
+    background: var(--live);
+    box-shadow: 0 0 0 3px rgb(61 214 140 / 0.18);
+    animation: beacon-live 2.8s var(--ease) infinite;
+  }
+
+  /* The gliding tab marker carries the green: the underline in the
+     bar layouts, the short left bar beside the open section in split. */
+  .tab-indicator::after {
+    background: var(--live);
+  }
+
+  /* In progress: the half-filled circle turns dusty amber. */
+  .pill:not(.is-done)::before {
+    border-color: #bfa05f;
+    background: linear-gradient(90deg, #bfa05f 50%, transparent 50%);
+  }
+
+  /* Completed: the check turns a deep green on the white pill. */
+  .pill.is-done .icon {
+    color: #146c43;
+  }
+
+  /* Linked rows tint their arrow green on hover or keyboard focus. */
+  .row-arrow {
+    transition: color 200ms var(--ease);
+  }
+
+  a.row:hover .row-arrow,
+  a.row:focus-visible .row-arrow {
+    color: var(--live);
+  }
+}
