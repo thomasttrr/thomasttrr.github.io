@@ -174,7 +174,7 @@ const SETTINGS = {
     github: "https://github.com/thomasttrr",
     // After you export a resume with the phone number removed, save it as
     // assets/Thomas-Tucker-Resume.pdf and set this to that path.
-    resume: "",
+    resume: "assets/Thomas-Tucker-Resume.pdf",
   },
 
   tabs: {
