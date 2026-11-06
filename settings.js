@@ -170,7 +170,7 @@ const SETTINGS = {
     // password. The real email address is intentionally not written
     // anywhere in this site's code.
     formKey: "a65fe5d5-e64a-41ea-aa1e-ee1643a657c7",
-    linkedin: "",
+    linkedin: "https://www.linkedin.com/in/thomas-tucker-b514971b4",
     github: "https://github.com/thomasttrr",
     // After you export a resume with the phone number removed, save it as
     // assets/Thomas-Tucker-Resume.pdf and set this to that path.
