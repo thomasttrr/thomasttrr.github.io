@@ -1044,12 +1044,22 @@ function boot(settings) {
 }
 
 function start() {
-  if (typeof SETTINGS === "undefined" || !SETTINGS || typeof SETTINGS !== "object" || Array.isArray(SETTINGS)) {
+  // Reading SETTINGS can throw, not just be undefined: if a value in
+  // settings.js is missing its quotes (photo: assets/portrait.jpg), the
+  // const never finishes initializing and even typeof SETTINGS throws.
+  let settings;
+  try {
+    settings = SETTINGS;
+  } catch (error) {
+    console.error(error);
+    settings = undefined;
+  }
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
     showBoot(SETTINGS_ERROR);
     return;
   }
   try {
-    boot(SETTINGS);
+    boot(settings);
   } catch (error) {
     console.error(error);
     showBoot("Something went wrong while building the card. Press F12, then open Console, to see the error.");
