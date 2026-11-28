@@ -152,13 +152,13 @@ const SETTINGS = {
     {
       name: "StarDiveMeta",
       summary:
-        "Tier-list site for a mobile game. Every ranking is backed by evidence from several sources, kept one tap away so readers can check it themselves.",
+        "Tier-list site for a mobile game, with a short plain-language reason behind every ranking.",
       link: "",
       tags: ["Data Quality", "Research", "Web App"],
     },
     {
       name: "LogMyMoto",
-      summary: "An app for logging motorcycle rides — trips and stops kept in one place.",
+      summary: "Verified motorcycle maintenance specs — oil capacities, service intervals, torque specs and OEM part numbers, every value checked against the owner's manual.",
       link: "",
       tags: ["Ride Logging"],
     },

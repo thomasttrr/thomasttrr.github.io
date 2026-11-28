@@ -26,6 +26,12 @@ Since 2018 I have checked work that has to be right before it ships — producti
 
 **AI Deal Tray** — Windows tray tool that compares AI models by real value, not just headline price: live prices, quality gates first, and cost per typical job. Python and PySide6.
 
+**WuWa Today** — Guide and tier-list site for a popular game, built and run by me. All data is checked against two sources before it goes up, and pages update on a set schedule. Next.js and TypeScript.
+
+**StarDiveMeta** — Tier-list site for a mobile game, with a short plain-language reason behind every ranking.
+
+**LogMyMoto** — Verified motorcycle maintenance specs: oil capacities, service intervals, torque specs and OEM part numbers, every value checked against the owner's manual.
+
 ### In progress
 
 Google AI Essentials · AI for Everyone · Generative AI for Everyone
